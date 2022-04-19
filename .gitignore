@@ -1,0 +1,10 @@
+_site
+.DS_Store
+
+.vscode
+.idea
+
+# confidential
+security.json
+
+__pycache__
