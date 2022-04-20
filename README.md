@@ -15,7 +15,7 @@
     * REST API 로 구현(Json response).
 
 * To Do
-    * sketch DATABASE and TABLE
+    * [x] sketch DATABASE and TABLE(models.py)
     ```mysql
     # mysql
     CREATE DATABASE crowdfunding default CHARACTER SET UTF8;
@@ -35,5 +35,13 @@
       PRIMARY KEY(postId)
     );
     ```
-    ![Alt text](./src/table-columns.png "Create 'crowdfunding.products'")
-    *  create ORM
+    | tables | fields |
+    |--------|--------|
+    | ![Alt text](./src/mysql-localhost.png "migrated tables") | ![Alt text](./src/table-columns.png "sketched 'crowdfunding.products'") |
+    * create ORM(views.py)
+      * [ ] addProducts
+      * [ ] editProducts
+      * [ ] deleteProducts
+      * [ ] showProducts
+      * [ ] showProductDetails
+    * [ ] REST API(serializers.py)
