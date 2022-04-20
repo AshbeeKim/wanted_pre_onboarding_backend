@@ -1,78 +1,79 @@
-from django.shortcuts import render, redirect
-from django.http import HttpResponse, JsonResponse
-from django.views.decorators.csrf import csrf_exempt
+from django.http import Http404
 from .models import Products
+from .serializers import (
+    ProductsSerializer,
+    AddProductsSerializer,
+    EditProductsSerializer,
+)
+from rest_framework import (
+    status,
+    permissions,    # user, group 에 대한 이해가 높아지면 사용할 예정
+)
+from rest_framework.views import APIView
+from rest_framework.response import Response
 
 
-# Create your views here.
-products = Products()
+def get_object(id):
+    try:
+        return Products.objects.get(postId=id)
+    except Products.DoesNotExist:
+        raise Http404("주어진 게시글 ID로 등록된 게시글이 없습니다.")
 
-def index(request):
-    return HttpResponse("Hello, Welcome to CrowdFunding.")
+class ProductsList(APIView):
+    def get(self, request, format=None):
+        products = Products.objects.all()
+        if request.query_params.get("search"):
+            keyword = request.query_params.get("search")
+            products = Products.objects.filter(postTitle__contains=keyword)
+        elif request.query_params.get("order_by"):
+            keyword = request.query_params.get("order_by")
+            assert keyword in ["생성일", "총펀딩금액"]  # 주어진 조건 외의 정렬 요청은 에러 발생
+            if keyword == "생성일":
+                products = Products.objects.all().order_by("startDate")
+            elif keyword == "총펀딩금액":
+                products = Products.objects.all().order_by("-totalAmount")
 
-@csrf_exempt
-def addProducts(request):
-    if request.method == 'GET':
-        article = '''
-            <form action="/add/" method="post">
-                <p><input type="text" name="postTitle" placeholder="게시글 제목" /></p>
-                <p><input type="text" name="publisherName" placeholder="게시자 명" /></p>
-                <p><input type=text"" name="productDesc" placeholder="상품 설명" /></p>
-                <p><input type="int" name="targetAmount" placeholder="목표 금액" /></p>
-                <p><input type="date" name="endDate" placeholder="펀딩 종료일" /></p>
-                <p><input type="int" name="amountPerTimes" placeholder="1회 펀딩 금액" /></p>
-                <p><input type="submit"/></p>
-            </form>
-        '''
-        # return request.method.GET
+            serializer = ProductsSerializer(products, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
 
-    elif request.method == 'POST':
-        products.postTitle = request.POST['postTitle']
-        products.publisherName = request.POST['publisherName']
-        products.productDesc = request.POST['productDesc']
-        products.targetAmount = request.POST['targetAmount']
-        products.endDate = request.POST['endDate']
-        products.amountPerTimes = request.POST['amountPerTimes']
+    def post(self, request, format=None):
+        data = request.data
+        data["publisherName"] = request.user.id
+        serializer = AddProductsSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save(publisherName=request.user)
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        # products 테이블 내 id가 있을 경우 하나씩 증가, 아니면 0으로 초기값을 가짐
-        id_list = list(map(lambda x: x.postId, products.objects.all()))
-        products.postId = max(id_list) + 1 if id_list else 0
-        products.save()
-        return redirect('/')
 
-@csrf_exempt
-def editProducts(request, id):
-    if request.method == 'GET':
-        product = Products.objects.get(postId=id)
-        article = f'''
-            <form action="/edit/{id}" method="post">
-                <p><input type="text" name="postTitle" placeholder="게시글 제목" /></p>
-                <p><input type="text" name="publisherName" placeholder="게시자 명" /></p>
-                <p><input type=text"" name="productDesc" placeholder="상품 설명" /></p>
-                <p><input type="date" name="endDate" placeholder="펀딩 종료일" /></p>
-                <p><input type="int" name="amountPerTimes" placeholder="1회 펀딩 금액" /></p>
-                <p><input type="submit"/></p>
-            </form>
-        '''
-        # return request.method.GET
+class ProductsDetail(APIView):
+    def get(self, request, id, format=None):
+        product = get_object(id=id)
+        serializer = ProductsSerializer(product)
+        return Response(serializer.data)
 
-    elif request.method == 'POST':
-        product = Products.objects.get(postId=id)
-        product.postTitle = request.POST['postTitle']
-        product.publisherName = request.POST['publisherName']
-        product.productDesc = request.POST['productDesc']
-        if product.targetAmount != request.POST['targetAmount']:
-            print("목표 금액은 변경이 불가합니다.")
-            product.targetAmount = product.targetAmount
-        product.endDate = request.POST['endDate']
-        product.amountPerTimes = request.POST['amountPerTimes']
-        product.save()
-        return redirect(f'/show/{id}')
-
-@csrf_exempt
-def deleteProducts(request):
-    if request.method == 'POST':
-        id = int(request.POST['postId'])
-        product = Products.objects.get(postId=id)
+    def delete(self, request, id, format=None):
+        product = get_object(id=id)
+        # 작성자인 경우에 지우는 코드는 알고 있지만, 운영자가 허위 펀딩이라 판단하고 지우는 내용을 반영하기는 아직 어려워서 우선은 주석 처리
         product.delete()
-        return redirect('/')
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def patch(self, request, id, format=None):
+        product = get_object(id=id)
+        # 위와 동일한 이유로 주석 처리 + 작성자와 동일한 그룹 중에서도 수정 권한이 있는 사람이 수정하도록 하는 코드를 반영하기 아직 어려움
+        serializer = EditProductsSerializer(product, data=request.data, partial=True)
+        # targetAmount 고정 값 반영이 안 된 것으로 보임.
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProductsFunding(APIView):
+    def patch(self, request, id, format=None):
+        product = get_object(id=id)
+        product.participantCount += 1   # 주어진 요구사항에선 단순 인원 수를 구하는 것이기에 용량을 적게 차지하는 방법 사용
+        product.totalAmount += product.amountPerTimes
+        product.save()
+        return Response(status=status.HTTP_200_OK)
+

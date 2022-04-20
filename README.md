@@ -40,8 +40,8 @@
     | ![Alt text](./src/mysql-localhost.png "migrated tables") | ![Alt text](./src/table-columns.png "sketched 'crowdfunding.products'") |
     * create ORM(views.py)
       * [x] addProducts
-      * [ ] editProducts
-      * [ ] deleteProducts
-      * [ ] showProducts
-      * [ ] showProductDetails
-    * [ ] REST API(serializers.py)
+      * [x] editProducts
+      * [x] deleteProducts
+      * [x] showProducts
+      * [x] showProductDetails
+    * [x] REST API(serializers.py)
