@@ -7,7 +7,7 @@ class Products(models.Model):
     postTitle = models.CharField('게시글 제목', blank=True, max_length=255)
     publisherName = models.CharField('게시자 명', blank=True, max_length=30)
     productDesc = models.CharField('상품 설명', blank=True, max_length=500)
-    targetAmount = models.PositiveIntegerField('목표 금액', editable=False)
+    targetAmount = models.PositiveIntegerField('목표 금액')
     startDate = models.DateTimeField('펀딩 시작일', auto_now_add=True)
     endDate = models.DateField('펀딩 종료일', default=datetime.date.today)
     amountPerTimes = models.PositiveIntegerField('1회 펀딩 금액', null=True)

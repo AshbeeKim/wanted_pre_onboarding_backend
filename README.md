@@ -39,7 +39,7 @@
     |--------|--------|
     | ![Alt text](./src/mysql-localhost.png "migrated tables") | ![Alt text](./src/table-columns.png "sketched 'crowdfunding.products'") |
     * create ORM(views.py)
-      * [ ] addProducts
+      * [x] addProducts
       * [ ] editProducts
       * [ ] deleteProducts
       * [ ] showProducts
